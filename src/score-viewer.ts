@@ -21,22 +21,36 @@ interface Option {
 
 class ScoreViewer {
 
-  private static _id: number
+  private static _live_id: number
+  private static _music_id: number
   private static _difficulty: number
-  private static _data: any
   private static _name: string
+
+  private static _data: any
+  private static _live_data: any
+  private static _music_data: any
 
   public static async main (): Promise<void> {
     ScoreViewer._data = (await axios.get('./data.json')).data
-    ScoreViewer._id = Number(Global.getQuery('id')) || ScoreViewer._data.default.id
+    ScoreViewer._live_data = (await axios.get('./assets/live_data.json')).data
+    ScoreViewer._music_data = (await axios.get('./assets/music_data.json')).data
+
+    ScoreViewer._live_id = Number(Global.getQuery('id')) || ScoreViewer._data.default.id
     ScoreViewer._difficulty = Number(Global.getQuery('difficulty')) || ScoreViewer._data.default.score
-    const live = ScoreViewer._data.music.find((live: { id: number; name: string }) => live.id === ScoreViewer._id)
-    ScoreViewer._name = live ? live.name.replace(/\\n/g, '') : 'Score'
+
+    const live_item = ScoreViewer._live_data[ScoreViewer._live_id]
+    ScoreViewer._music_id = live_item ? live_item.music_data_id : null
+
+    const music_item = ScoreViewer._music_data[ScoreViewer._music_id]
+    ScoreViewer._name = music_item ? music_item.name.replace(/\\n/g, '') : 'Score'
+
+    const mname = ScoreViewer._live_id.toString().padStart(3, '0')
+
     document.getElementsByTagName('title')[0].innerHTML = ScoreViewer._name
-    const csv = (await axios.get(`./res/${ScoreViewer._id}-${ScoreViewer._difficulty}.csv`)).data
+    const csv = (await axios.get(`./assets/musicscores/m${mname}/${ScoreViewer._live_id}_${ScoreViewer._difficulty}.csv`)).data
     const { fullCombo, score } = Global.createScore(csv)
     ScoreViewer.init({
-      src: `./res/${ScoreViewer._id}.mp3`,
+      src: `./assets/live/wav/song_${ScoreViewer._music_id}.wav`,
       fullCombo,
       score
     }, document.body)
@@ -392,7 +406,7 @@ class ScoreViewer {
       // })
 
       const a = document.createElement('a')
-      a.download = `${ScoreViewer._id}-${ScoreViewer._difficulty}.png`
+      a.download = `${ScoreViewer._live_id}-${ScoreViewer._difficulty}.png`
       a.href = URL.createObjectURL(blob)
       const event = new MouseEvent('click', {
         view: window,
